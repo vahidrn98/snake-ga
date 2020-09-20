@@ -28,10 +28,10 @@ class DQNAgent(object):
 
     def network(self):
         model = Sequential()
-        model.add(Dense(output_dim=self.first_layer, activation='relu', input_dim=11))
-        model.add(Dense(output_dim=self.second_layer, activation='relu'))
-        model.add(Dense(output_dim=self.third_layer, activation='relu'))
-        model.add(Dense(output_dim=3, activation='softmax'))
+        model.add(Dense(output_dim=self.first_layer, activation='tanh', input_dim=11))
+        model.add(Dense(output_dim=self.second_layer, activation='tanh'))
+        model.add(Dense(output_dim=self.third_layer, activation='tanh'))
+        model.add(Dense(output_dim=3, activation='linear'))
         opt = Adam(self.learning_rate)
         model.compile(loss='mse', optimizer=opt)
 
@@ -60,7 +60,6 @@ class DQNAgent(object):
             (list(map(add,player.position[-1],[0,-20])) in player.position) or player.position[-1][-1] - 20 < 20)) or (
             player.x_change == -20 and player.y_change == 0 and ((list(map(add,player.position[-1],[0,20])) in player.position) or
             player.position[-1][-1] + 20 >= (game.game_height-20))), #danger left
-
 
             player.x_change == -20,  # move left
             player.x_change == 20,  # move right

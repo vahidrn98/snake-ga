@@ -7,28 +7,23 @@ import matplotlib.pyplot as plt
 from DQN import DQNAgent
 from random import randint
 from keras.utils import to_categorical
-import random
-import statistics
 
 #################################
 #   Define parameters manually  #
 #################################
 def define_parameters():
     params = dict()
-    # Neural Network
     params['epsilon_decay_linear'] = 1/75
     params['learning_rate'] = 0.0005
-    params['first_layer_size'] = 50   # neurons in the first layer
-    params['second_layer_size'] = 300   # neurons in the second layer
-    params['third_layer_size'] = 50    # neurons in the third layer
-    params['episodes'] = 150           
-    params['memory_size'] = 2500
-    params['batch_size'] = 1000
-    # Settings
-    params['weights_path'] = 'weights/weights3.hdf5'
+    params['first_layer_size'] = 150   # neurons in the first layer
+    params['second_layer_size'] = 150   # neurons in the second layer
+    params['third_layer_size'] = 150    # neurons in the third layer
+    params['episodes'] = 150            
+    params['memory_size'] = 2400
+    params['batch_size'] = 400
+    params['weights_path'] = 'weights/weights.hdf5'
     params['load_weights'] = False
     params['train'] = True
-    params['plot_score'] = True
     return params
 
 
@@ -37,7 +32,7 @@ class Game:
         pygame.display.set_caption('SnakeGen')
         self.game_width = game_width
         self.game_height = game_height
-        #self.gameDisplay = pygame.display.set_mode((game_width, game_height + 60))
+        self.gameDisplay = pygame.display.set_mode((game_width, game_height + 60))
         self.bg = pygame.image.load("img/background.png")
         self.crash = False
         self.player = Player(self)
@@ -181,40 +176,17 @@ def initialize_game(player, game, food, agent, batch_size):
     agent.replay_new(agent.memory, batch_size)
 
 
-def plot_seaborn(array_counter, array_score,train):
-    sns.set(color_codes=True, font_scale=1.5)
-    sns.set_style("white")
-    plt.figure(figsize=(13,8))
-    if train==False:
-        fit_reg = False
+def plot_seaborn(array_counter, array_score):
+    sns.set(color_codes=True)
     ax = sns.regplot(
         np.array([array_counter])[0],
         np.array([array_score])[0],
-        #color="#36688D",
+        color="b",
         x_jitter=.1,
-        scatter_kws={"color": "#36688D"},
-        label='Data',
-        fit_reg = fit_reg,
-        line_kws={"color": "#F49F05"}
+        line_kws={'color': 'green'}
     )
-    # Plot the average line
-    y_mean = [np.mean(array_score)]*len(array_counter)
-    ax.plot(array_counter,y_mean, label='Mean', linestyle='--')
-    ax.legend(loc='upper right')
-    ax.set(xlabel='# games', ylabel='score')
-    plt.ylim(0,65)
+    ax.set(xlabel='games', ylabel='score')
     plt.show()
-
-
-def get_mean_stdev(array):
-    return statistics.mean(array), statistics.stdev(array)    
-
-
-def test(display_option, speed, params):
-    params['load_weights'] = True
-    params['train'] = False
-    score, mean, stdev = run(display_option, speed, params)
-    return score, mean, stdev
 
 
 def run(display_option, speed, params):
@@ -224,11 +196,11 @@ def run(display_option, speed, params):
     if params['load_weights']:
         agent.model.load_weights(weights_filepath)
         print("weights loaded")
+
     counter_games = 0
     score_plot = []
     counter_plot = []
     record = 0
-    total_score = 0
     while counter_games < params['episodes']:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -246,16 +218,17 @@ def run(display_option, speed, params):
 
         while not game.crash:
             if not params['train']:
-                agent.epsilon = 0.00
+                agent.epsilon = 0
             else:
                 # agent.epsilon is set to give randomness to actions
                 agent.epsilon = 1 - (counter_games * params['epsilon_decay_linear'])
 
             # get old state
             state_old = agent.get_state(game, player1, food1)
-
+            x1 = player1.x_change
+            y1 = player1.y_change
             # perform random actions based on agent.epsilon, or choose the action
-            if random.uniform(0, 1) < agent.epsilon:
+            if randint(0, 1) < agent.epsilon:
                 final_move = to_categorical(randint(0, 2), num_classes=3)
             else:
                 # predict action based on the old state
@@ -282,18 +255,12 @@ def run(display_option, speed, params):
         if params['train']:
             agent.replay_new(agent.memory, params['batch_size'])
         counter_games += 1
-        total_score += game.score
         print(f'Game {counter_games}      Score: {game.score}')
         score_plot.append(game.score)
         counter_plot.append(counter_games)
-    mean, stdev = get_mean_stdev(score_plot)
     if params['train']:
         agent.model.save_weights(params['weights_path'])
-        total_score, mean, stdev = test(display_option, speed, params)
-    if params['plot_score']:
-        plot_seaborn(counter_plot, score_plot, params['train'])
-    print('Total score: {}   Mean: {}   Std dev:   {}'.format(total_score, mean, stdev))
-    return total_score, mean, stdev
+    plot_seaborn(counter_plot, score_plot)
 
 
 if __name__ == '__main__':
@@ -301,7 +268,7 @@ if __name__ == '__main__':
     pygame.font.init()
     parser = argparse.ArgumentParser()
     params = define_parameters()
-    parser.add_argument("--display", type=bool, default=False)
+    parser.add_argument("--display", type=bool, default=True)
     parser.add_argument("--speed", type=int, default=50)
     args = parser.parse_args()
     params['bayesian_optimization'] = False    # Use bayesOpt.py for Bayesian Optimization
