@@ -7,20 +7,21 @@ import matplotlib.pyplot as plt
 from DQN import DQNAgent
 from random import randint
 from keras.utils import to_categorical
+from bayes_opt import BayesianOptimization,UtilityFunction
 
 #################################
 #   Define parameters manually  #
 #################################
-def define_parameters():
+def define_parameters(layer_size,mem,batch,alpha):
     params = dict()
     params['epsilon_decay_linear'] = 1/75
-    params['learning_rate'] = 0.0005
-    params['first_layer_size'] = 150   # neurons in the first layer
-    params['second_layer_size'] = 150   # neurons in the second layer
-    params['third_layer_size'] = 150    # neurons in the third layer
+    params['learning_rate'] = alpha
+    params['first_layer_size'] = layer_size  # neurons in the first layer
+    params['second_layer_size'] = layer_size   # neurons in the second layer
+    params['third_layer_size'] = layer_size   # neurons in the third layer
     params['episodes'] = 150            
-    params['memory_size'] = 2400
-    params['batch_size'] = 400
+    params['memory_size'] = mem
+    params['batch_size'] = batch
     params['weights_path'] = 'weights/weights.hdf5'
     params['load_weights'] = False
     params['train'] = True
@@ -260,16 +261,26 @@ def run(display_option, speed, params):
         counter_plot.append(counter_games)
     if params['train']:
         agent.model.save_weights(params['weights_path'])
-    plot_seaborn(counter_plot, score_plot)
+    # plot_seaborn(counter_plot, score_plot)
+    return (sum(score_plot)/len(score_plot))
 
 
 if __name__ == '__main__':
+    b_optimizer = BayesianOptimization(
+        f=None,
+        pbounds={'alpha':(0.0005,0.1),'batch_size': (50, 500),'layer_size':(30,100),'memory_size':(1000,5000)},
+        verbose=2,
+        random_state=1,
+    )
+    utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0.0)
     # Set options to activate or deactivate the game view, and its speed
     pygame.font.init()
     parser = argparse.ArgumentParser()
-    params = define_parameters()
     parser.add_argument("--display", type=bool, default=True)
     parser.add_argument("--speed", type=int, default=50)
     args = parser.parse_args()
-    params['bayesian_optimization'] = False    # Use bayesOpt.py for Bayesian Optimization
-    run(args.display, args.speed, params)
+    for e in range(10):
+        next_point = b_optimizer.suggest(utility)
+        params = define_parameters(next_point.layer_size,next_point.memory_size,next_point.batch_size,next_point.alpha)
+        target = 1/run(args.display, args.speed, params)
+        b_optimizer.register(params=next_point, target=target)
