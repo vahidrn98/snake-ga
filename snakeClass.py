@@ -281,6 +281,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     for e in range(10):
         next_point = b_optimizer.suggest(utility)
-        params = define_parameters(next_point.layer_size,next_point.memory_size,next_point.batch_size,next_point.alpha)
+        print(next_point)
+        params = define_parameters(int(next_point["layer_size"]),int(next_point["memory_size"]),int(next_point["batch_size"]),next_point["alpha"])
         target = 1/run(args.display, args.speed, params)
         b_optimizer.register(params=next_point, target=target)
