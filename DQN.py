@@ -1,11 +1,14 @@
-from keras.optimizers import Adam
-from keras.models import Sequential
-from keras.layers.core import Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout,Flatten
+from tensorflow.keras.layers import Conv2D,MaxPooling2D
 import random
 import numpy as np
 import pandas as pd
 from operator import add
 import collections
+
+
 
 class DQNAgent(object):
     def __init__(self, params):
@@ -28,10 +31,15 @@ class DQNAgent(object):
 
     def network(self):
         model = Sequential()
-        model.add(Dense(output_dim=self.first_layer, activation='tanh', input_dim=11))
-        model.add(Dense(output_dim=self.second_layer, activation='tanh'))
-        model.add(Dense(output_dim=self.third_layer, activation='tanh'))
-        model.add(Dense(output_dim=3, activation='linear'))
+        model.add(Conv2D(28, (4, 4), activation='relu', input_shape=(28, 28, 1)))
+        model.add(MaxPooling2D((4, 4)))
+        model.add(Flatten())
+        model.add(Dense(self.first_layer, activation='tanh'))
+        model.add(Dense(self.second_layer, activation='tanh'))
+        model.add(Dense(self.third_layer, activation='tanh'))
+        # model.add(Dense(output_dim=self.third_layer, activation='tanh'))
+        # model.add(Dense(output_dim=self.third_layer, activation='tanh'))
+        model.add(Dense(3, activation='linear'))
         opt = Adam(self.learning_rate)
         model.compile(loss='mse', optimizer=opt)
 
@@ -40,44 +48,62 @@ class DQNAgent(object):
         return model
     
     def get_state(self, game, player, food):
-        state = [
-            (player.x_change == 20 and player.y_change == 0 and ((list(map(add, player.position[-1], [20, 0])) in player.position) or
-            player.position[-1][0] + 20 >= (game.game_width - 20))) or (player.x_change == -20 and player.y_change == 0 and ((list(map(add, player.position[-1], [-20, 0])) in player.position) or
-            player.position[-1][0] - 20 < 20)) or (player.x_change == 0 and player.y_change == -20 and ((list(map(add, player.position[-1], [0, -20])) in player.position) or
-            player.position[-1][-1] - 20 < 20)) or (player.x_change == 0 and player.y_change == 20 and ((list(map(add, player.position[-1], [0, 20])) in player.position) or
-            player.position[-1][-1] + 20 >= (game.game_height-20))),  # danger straight
-
-            (player.x_change == 0 and player.y_change == -20 and ((list(map(add,player.position[-1],[20, 0])) in player.position) or
-            player.position[ -1][0] + 20 > (game.game_width-20))) or (player.x_change == 0 and player.y_change == 20 and ((list(map(add,player.position[-1],
-            [-20,0])) in player.position) or player.position[-1][0] - 20 < 20)) or (player.x_change == -20 and player.y_change == 0 and ((list(map(
-            add,player.position[-1],[0,-20])) in player.position) or player.position[-1][-1] - 20 < 20)) or (player.x_change == 20 and player.y_change == 0 and (
-            (list(map(add,player.position[-1],[0,20])) in player.position) or player.position[-1][
-             -1] + 20 >= (game.game_height-20))),  # danger right
-
-             (player.x_change == 0 and player.y_change == 20 and ((list(map(add,player.position[-1],[20,0])) in player.position) or
-             player.position[-1][0] + 20 > (game.game_width-20))) or (player.x_change == 0 and player.y_change == -20 and ((list(map(
-             add, player.position[-1],[-20,0])) in player.position) or player.position[-1][0] - 20 < 20)) or (player.x_change == 20 and player.y_change == 0 and (
-            (list(map(add,player.position[-1],[0,-20])) in player.position) or player.position[-1][-1] - 20 < 20)) or (
-            player.x_change == -20 and player.y_change == 0 and ((list(map(add,player.position[-1],[0,20])) in player.position) or
-            player.position[-1][-1] + 20 >= (game.game_height-20))), #danger left
-
-            player.x_change == -20,  # move left
-            player.x_change == 20,  # move right
-            player.y_change == -20,  # move up
-            player.y_change == 20,  # move down
-            food.x_food < player.x,  # food left
-            food.x_food > player.x,  # food right
-            food.y_food < player.y,  # food up
-            food.y_food > player.y  # food down
-            ]
-
-        for i in range(len(state)):
-            if state[i]:
-                state[i]=1
+        
+        initial = np.zeros(shape=(28,28,1))
+        for i in range(22):
+            if(i!=0 and i!=21):
+                initial[i+3][3] = [-10]
+                initial[i+3][24] = [-10]
             else:
-                state[i]=0
+                for j in range(22):
+                    if(i==0 or i==21):
+                        initial[i+3][j+3] = [-10]
+        # print(food.x_food)
+        initial[(food.x_food//20)+3][(food.y_food//20)+3] = [10]
+        for p in player.position:
+            initial[(int(p[0])//20)+3][(int(p[1])//20)+3] = [-10]
+        initial[(int(player.position[-1][0])//20)+3][(int(player.position[-1][1])//20)+3] =[ 1]
+        # for i in range(22):
+        #     print(initial[i])
+        state =initial
+        # state = [
+        #     (player.x_change == 20 and player.y_change == 0 and ((list(map(add, player.position[-1], [20, 0])) in player.position) or
+        #     player.position[-1][0] + 20 >= (game.game_width - 20))) or (player.x_change == -20 and player.y_change == 0 and ((list(map(add, player.position[-1], [-20, 0])) in player.position) or
+        #     player.position[-1][0] - 20 < 20)) or (player.x_change == 0 and player.y_change == -20 and ((list(map(add, player.position[-1], [0, -20])) in player.position) or
+        #     player.position[-1][-1] - 20 < 20)) or (player.x_change == 0 and player.y_change == 20 and ((list(map(add, player.position[-1], [0, 20])) in player.position) or
+        #     player.position[-1][-1] + 20 >= (game.game_height-20))),  # danger straight
 
-        return np.asarray(state)
+        #     (player.x_change == 0 and player.y_change == -20 and ((list(map(add,player.position[-1],[20, 0])) in player.position) or
+        #     player.position[ -1][0] + 20 > (game.game_width-20))) or (player.x_change == 0 and player.y_change == 20 and ((list(map(add,player.position[-1],
+        #     [-20,0])) in player.position) or player.position[-1][0] - 20 < 20)) or (player.x_change == -20 and player.y_change == 0 and ((list(map(
+        #     add,player.position[-1],[0,-20])) in player.position) or player.position[-1][-1] - 20 < 20)) or (player.x_change == 20 and player.y_change == 0 and (
+        #     (list(map(add,player.position[-1],[0,20])) in player.position) or player.position[-1][
+        #      -1] + 20 >= (game.game_height-20))),  # danger right
+
+        #      (player.x_change == 0 and player.y_change == 20 and ((list(map(add,player.position[-1],[20,0])) in player.position) or
+        #      player.position[-1][0] + 20 > (game.game_width-20))) or (player.x_change == 0 and player.y_change == -20 and ((list(map(
+        #      add, player.position[-1],[-20,0])) in player.position) or player.position[-1][0] - 20 < 20)) or (player.x_change == 20 and player.y_change == 0 and (
+        #     (list(map(add,player.position[-1],[0,-20])) in player.position) or player.position[-1][-1] - 20 < 20)) or (
+        #     player.x_change == -20 and player.y_change == 0 and ((list(map(add,player.position[-1],[0,20])) in player.position) or
+        #     player.position[-1][-1] + 20 >= (game.game_height-20))), #danger left
+
+        #     player.x_change == -20,  # move left
+        #     player.x_change == 20,  # move right
+        #     player.y_change == -20,  # move up
+        #     player.y_change == 20,  # move down
+        #     food.x_food < player.x,  # food left
+        #     food.x_food > player.x,  # food right
+        #     food.y_food < player.y,  # food up
+        #     food.y_food > player.y  # food down
+        #     ]
+
+        # for i in range(len(state)):
+        #     if state[i]:
+        #         state[i]=1
+        #     else:
+        #         state[i]=0
+
+        return state
 
     def set_reward(self, player, crash):
         self.reward = 0

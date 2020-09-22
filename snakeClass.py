@@ -223,7 +223,8 @@ def run(display_option, speed, params):
             else:
                 # agent.epsilon is set to give randomness to actions
                 agent.epsilon = 1 - (counter_games * params['epsilon_decay_linear'])
-
+            # if(agent.epsilon<0.05):
+            #     agent.epsilon = 0.05
             # get old state
             state_old = agent.get_state(game, player1, food1)
             x1 = player1.x_change
@@ -279,9 +280,9 @@ if __name__ == '__main__':
     parser.add_argument("--display", type=bool, default=True)
     parser.add_argument("--speed", type=int, default=50)
     args = parser.parse_args()
-    for e in range(10):
-        next_point = b_optimizer.suggest(utility)
-        print(next_point)
-        params = define_parameters(int(next_point["layer_size"]),int(next_point["memory_size"]),int(next_point["batch_size"]),next_point["alpha"])
-        target = 1/run(args.display, args.speed, params)
-        b_optimizer.register(params=next_point, target=target)
+    # for e in range(10):
+    next_point = b_optimizer.suggest(utility)
+    print(next_point)
+    params = define_parameters(150,2500,500,0.0005)
+    target = 1/run(args.display, args.speed, params)
+    b_optimizer.register(params=next_point, target=target)
