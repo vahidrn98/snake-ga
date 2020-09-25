@@ -133,7 +133,7 @@ class DQNAgent(object):
     def train_short_memory(self, state, action, reward, next_state, done):
         target = reward
         if not done:
-            target = reward + self.gamma * np.amax(self.model.predict(next_state.reshape((1, 11)))[0])
-        target_f = self.model.predict(state.reshape((1, 11)))
+            target = reward + self.gamma * np.amax(self.model.predict(np.array([next_state]))[0])
+        target_f = self.model.predict(np.array([state]))
         target_f[0][np.argmax(action)] = target
-        self.model.fit(state.reshape((1, 11)), target_f, epochs=1, verbose=0)
+        self.model.fit(np.array([state]), target_f, epochs=1, verbose=0)

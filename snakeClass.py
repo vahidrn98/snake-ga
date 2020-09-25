@@ -9,6 +9,7 @@ from random import randint
 from keras.utils import to_categorical
 from bayes_opt import BayesianOptimization,UtilityFunction
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 #################################
 #   Define parameters manually  #
 #################################
@@ -174,7 +175,7 @@ def initialize_game(player, game, food, agent, batch_size):
     state_init2 = agent.get_state(game, player, food)
     reward1 = agent.set_reward(player, game.crash)
     agent.remember(state_init1, action, reward1, state_init2, game.crash)
-    agent.replay_new(agent.memory, batch_size)
+    agent.replay_new(np.asarray(agent.memory), batch_size)
 
 
 def plot_seaborn(array_counter, array_score):
@@ -234,7 +235,7 @@ def run(display_option, speed, params):
                 final_move = to_categorical(randint(0, 2), num_classes=3)
             else:
                 # predict action based on the old state
-                prediction = agent.model.predict(state_old.reshape((1, 11)))
+                prediction = agent.model.predict(np.array([state_old]))
                 final_move = to_categorical(np.argmax(prediction[0]), num_classes=3)
 
             # perform new move and get new state
@@ -255,7 +256,7 @@ def run(display_option, speed, params):
                 display(player1, food1, game, record)
                 pygame.time.wait(speed)
         if params['train']:
-            agent.replay_new(agent.memory, params['batch_size'])
+            agent.replay_new(np.array(agent.memory), params['batch_size'])
         counter_games += 1
         print(f'Game {counter_games}      Score: {game.score}')
         score_plot.append(game.score)
