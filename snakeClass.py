@@ -9,7 +9,7 @@ from random import randint
 from keras.utils import to_categorical
 from bayes_opt import BayesianOptimization,UtilityFunction
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 #################################
 #   Define parameters manually  #
 #################################
